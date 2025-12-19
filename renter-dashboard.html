@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renter Dashboard | RentEase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Dark mode initialization (prevents flash) -->
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <style>
+    :root {
+      --dashboard-bg: #F8FAFC;
+      --section-bg: #ffffff;
+      --section-text: #0F172A;
+      --header-accent: #3B82F6;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+      --bg-gradient: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    }
+
+    [data-theme="dark"] {
+      --dashboard-bg: #020617;
+      /* Very dark navy */
+      --section-bg: #0B1220;
+      /* Deep slate navy */
+      --section-text: #F8FAFC;
+      --header-accent: #60A5FA;
+      --text-muted: #94A3B8;
+      --border-color: #1E293B;
+      --bg-gradient: linear-gradient(135deg, #020617 0%, #0F172A 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.3s ease;
+    }
+
+    header {
+      /* Match Homepage Blue Gradient */
+      background: linear-gradient(to bottom, rgba(19, 59, 133, 0.95), rgba(11, 61, 204, 0.95));
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    header a {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    header a:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      align-items: center;
+      color: var(--section-text);
+      /* Use variable for auto-switching */
+      text-align: center;
+    }
+
+    h3 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .section {
+      width: 90%;
+      max-width: 800px;
+      margin-bottom: 2rem;
+      background: var(--section-bg);
+      border-radius: 20px;
+      padding: 2rem;
+      color: var(--section-text);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    [data-theme="dark"] .section {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .section h4 {
+      color: var(--header-accent);
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+
+    .profile-info p,
+    .payment-history p {
+      margin: 0.3rem 0;
+      font-size: 0.95rem;
+      text-align: left;
+    }
+
+    .booking-card {
+      background: white;
+      color: #333;
+      width: 100%;
+      border-radius: 16px;
+      padding: 1.2rem;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      margin-bottom: 1.2rem;
+      transition: 0.3s ease;
+      text-align: left;
+      border: 1px solid var(--border-color);
+      /* Add border for definition */
+    }
+
+    .booking-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .booking-actions {
+      margin-top: 0.8rem;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .booking-actions button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    .pay-btn {
+      background: #0b61ff;
+      color: #fff;
+    }
+
+    .pay-btn:hover {
+      background: #084ad1;
+    }
+
+    .cancel-btn {
+      background: #d32f2f;
+      color: #fff;
+    }
+
+    .cancel-btn:hover {
+      background: #b71c1c;
+    }
+
+    .booking-card h4 {
+      color: #0b61ff;
+      margin-bottom: 0.5rem;
+    }
+
+    footer {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.9rem;
+    }
+
+
+
+    /* -------------------------------
+   Navbar User (Bell + Name + Dropdown)
+---------------------------------- */
+    .user-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      position: relative;
+      font-size: 1.05rem;
+      padding: 0.35rem 0.45rem;
+      border-radius: 12px;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .badge {
+      position: absolute;
+      top: -4px;
+      right: -2px;
+      background: #ff4d4f;
+      color: #fff;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      padding: 2px 6px;
+      min-width: 18px;
+      text-align: center;
+      border: 2px solid rgba(0, 0, 0, 0.18);
+    }
+
+    .user-menu {
+      position: relative;
+    }
+
+    .user-menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.30);
+      color: #fff;
+      border-radius: 999px;
+      padding: 0.38rem 0.70rem;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .user-menu-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .user-dropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 14px;
+      min-width: 200px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+      z-index: 999;
+    }
+
+    .user-dropdown a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.8rem 0.95rem;
+      color: #111;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .user-dropdown a:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-link {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+
+    .booking-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .review-btn {
+      background: #0b61ff;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .reviewed-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    /* Modal base (reuse) */
+    .modal {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+
+    .modal .modal-content {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      width: 100%;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      header {
+        padding: 0.8rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        height: auto;
+        /* Allow height to grow */
+      }
+
+      .header-left {
+        width: 100%;
+        justify-content: space-between;
+        /* Spread out back link and title */
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: flex-end;
+        /* Align user controls to right */
+        padding-top: 5px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        /* Separator */
+      }
+
+      .back-link {
+        font-size: 0.7rem;
+        padding: 5px 8px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      header h2 {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .user-menu-btn {
+        padding: 0.35rem 0.6rem;
+        gap: 6px;
+        max-width: 140px;
+      }
+
+      .user-menu-btn span {
+        display: inline;
+        font-size: 0.75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 80px;
+      }
+
+      .header-right {
+        gap: 6px;
+        flex-shrink: 0;
+      }
+
+      main {
+        padding: 1.5rem 0.8rem;
+      }
+
+      h3 {
+        font-size: 1.4rem;
+      }
+
+      .section {
+        width: 95%;
+        padding: 1.2rem;
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 400px) {
+      .back-link {
+        font-size: 0.65rem;
+        padding: 4px 6px;
+      }
+
+      header h2 {
+        font-size: 0.85rem;
+      }
+
+      .user-menu-btn span {
+        max-width: 60px;
+        font-size: 0.7rem;
+      }
+    }
+
+    /* Dark Mode Toggle Button */
+    .theme-toggle {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
+    }
+
+    .theme-toggle .fa-sun {
+      display: none;
+    }
+
+    .theme-toggle .fa-moon {
+      display: inline-block;
+    }
+
+    [data-theme="dark"] .theme-toggle .fa-sun {
+      display: inline-block;
+    }
+
+    [data-theme="dark"] .theme-toggle .fa-moon {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-left">
+      <a class="back-link" href="index.html">← Back to Home</a>
+      <h2>👤 Renter Dashboard</h2>
+    </div>
+
+    <div class="header-right">
+      <!-- Dark Mode Toggle -->
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <i class="fa-solid fa-moon"></i>
+        <i class="fa-solid fa-sun"></i>
+      </button>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="user-menu-btn" aria-haspopup="true" aria-expanded="false" title="Account">
+          <i class="fa-regular fa-user"></i>
+          <span id="navUserName">Account</span>
+        </button>
+
+        <div id="userDropdown" class="user-dropdown" role="menu" style="display:none;">
+          <a href="#top" role="menuitem"><i class="fa-solid fa-house"></i> Dashboard</a>
+          <a href="#" id="signOutLink" role="menuitem"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <h3>Welcome Back, Renter!</h3>
+
+    <!-- profile -->
+    <div class="section profile-info">
+      <h4>🧍‍♂️ My Profile</h4>
+      <p style="color:var(--text-muted);">Loading profile...</p>
+    </div>
+
+    <!-- bookings -->
+    <div class="section">
+      <h4>🏡 My Bookings</h4>
+      <div style="text-align: center; padding: 1rem; color: var(--text-muted);">
+        <p>Loading bookings...</p>
+      </div>
+    </div>
+
+    <!-- payments -->
+    <div class="section payment-history">
+      <h4>💳 Payment History</h4>
+      <p style="color:var(--text-muted);">Loading payment history...</p>
+    </div>
+  </main>
+
+
+  <footer>
+    © 2025 RentEase. All rights reserved.
+  </footer>
+  <script src="supabase-config.js"></script>
+  <script src="renter-dashboard.js"></script>
+
+  <!-- Dark Mode Toggle Script -->
+  <script>
+    (function () {
+      const themeToggle = document.getElementById('themeToggle');
+      if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+          const html = document.documentElement;
+          const currentTheme = html.getAttribute('data-theme');
+
+          if (currentTheme === 'dark') {
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+          } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+          }
+        });
+      }
+    })();
+  </script>
+
+  <!-- Review Modal -->
+  <div id="review-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:520px;">
+      <span class="close-review" style="float:right; cursor:pointer; font-size:1.4rem;">&times;</span>
+      <h2 style="margin-bottom:10px;">Leave a Review</h2>
+      <p id="reviewPropertyName" style="margin-bottom:12px; color:var(--text-muted);"></p>
+
+      <form id="review-form">
+        <input type="hidden" id="reviewBookingId">
+        <input type="hidden" id="reviewPropertyId">
+
+        <label for="reviewRating"><strong>Rating</strong></label>
+        <select id="reviewRating" required
+          style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin:6px 0 12px;">
+          <option value="">Select</option>
+          <option value="5">5 - Excellent</option>
+          <option value="4">4 - Good</option>
+          <option value="3">3 - Okay</option>
+          <option value="2">2 - Bad</option>
+          <option value="1">1 - Terrible</option>
+        </select>
+
+        <label for="reviewComment"><strong>Comment</strong></label>
+        <textarea id="reviewComment" rows="4" placeholder="Write your opinion..."
+          style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-top:6px;"></textarea>
+
+        <button type="submit"
+          style="margin-top:12px; width:100%; padding:12px; border:none; border-radius:12px; background:#0b61ff; color:white; font-weight:700; cursor:pointer;">
+          Submit Review
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="payment-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <span class="close-payment" style="float:right; cursor:pointer; font-size:1.4rem;">&times;</span>
+      <h2 style="margin-bottom:10px;">Select Payment Method</h2>
+      <p id="paymentPropertyName" style="margin-bottom:5px; color:#555; font-weight:600;"></p>
+      <p id="paymentAmount" style="margin-bottom:15px; color:#0b61ff; font-weight:bold;"></p>
+
+      <form id="payment-form">
+        <input type="hidden" id="paymentBookingId">
+        <input type="hidden" id="paymentAmountValue">
+
+        <div style="margin-bottom:15px; text-align:left;">
+          <p style="margin-bottom:8px; font-weight:600;">Choose a method:</p>
+          <label
+            style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; padding:8px; border:1px solid #eee; border-radius:8px;">
+            <input type="radio" name="paymentMethod" value="bkash" required>
+            <span>Bkash</span>
+          </label>
+          <label
+            style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; padding:8px; border:1px solid #eee; border-radius:8px;">
+            <input type="radio" name="paymentMethod" value="nagad">
+            <span>Nagad</span>
+          </label>
+          <label
+            style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; padding:8px; border:1px solid #eee; border-radius:8px;">
+            <input type="radio" name="paymentMethod" value="bank">
+            <span>Bank Transfer</span>
+          </label>
+          <label
+            style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; padding:8px; border:1px solid #eee; border-radius:8px;">
+            <input type="radio" name="paymentMethod" value="cash">
+            <span>Cash</span>
+          </label>
+        </div>
+
+        <button type="submit"
+          style="width:100%; padding:12px; border:none; border-radius:12px; background:#0b61ff; color:white; font-weight:700; cursor:pointer;">
+          Confirm Payment
+        </button>
+      </form>
+    </div>
+  </div>
+
+</body>
+
+</html>
